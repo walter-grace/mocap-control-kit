@@ -3,7 +3,7 @@
 **1/**
 Open-sourced the tool I use to turn physics mocap into control videos for AI video models.
 
-One Python file. Joint positions in ({fps, parents, pos} json.gz), OpenPose-style skeleton video out, ready to drive Wan-VACE or LTX-2.3 Union-Control. Deps: numpy, Pillow, ffmpeg.
+A single static Go binary. Joint positions in ({fps, parents, pos} json.gz), OpenPose-style skeleton video out, ready to drive Wan-VACE or LTX-2.3 Union-Control. Only dependency is ffmpeg.
 
 [LINK]
 

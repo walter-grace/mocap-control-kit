@@ -1,3 +1,5 @@
 __pycache__/
 *.mp4
 *.json.gz
+/mocap-control
+/mocap-control-kit

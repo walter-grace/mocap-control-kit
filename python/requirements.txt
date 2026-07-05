@@ -1,0 +1,7 @@
+# for extract_controls.py (video → depth/pose/combo control videos)
+torch
+transformers
+mediapipe
+opencv-python
+pillow
+numpy
