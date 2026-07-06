@@ -6,6 +6,10 @@ Build pose+depth control videos for AI video models (LTX-2.3, Wan-VACE, and frie
 
 **1. From real footage (the main lane).** Point it at any clip with a person in it. It pulls **depth from the scene** and **pose from the actual person in frame** — both extracted from the same video — and composites them into one combo control. Feed that to a union/multi-condition model and it re-skins that exact person into anyone while their real motion, real 3D volume, and real occlusion stay intact. No mocap suit, no green screen, no set. Everything runs locally.
 
+![combo control extracted from real footage: depth mask + pose skeleton](assets/combo-demo.gif)
+
+*`combo.mp4` extracted from a single clip of one performer — the depth mask carries the 3D, the skeleton carries the motion, both pulled from the same frames.*
+
 ```bash
 pip install -r python/requirements.txt   # torch, transformers, mediapipe, opencv
 python3 python/extract_controls.py --video in.mp4 --outdir controls/
