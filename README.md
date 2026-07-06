@@ -1,10 +1,22 @@
 # mocap-control-kit
 
-Turn mocap/joint data into pose+depth control videos for AI video models (Wan-VACE, LTX-2.3, and friends).
+Build pose+depth control videos for AI video models (LTX-2.3, Wan-VACE, and friends). The control video carries the motion and the 3D of the scene; the model does the skinning, lighting, and wardrobe. You keep the performance.
 
-One static Go binary, no rendering stack. Feed it joint positions from any source (physics sim, retargeted mocap, procedural gait) as `{fps, parents, pos[F][J][3]}` json.gz, and it renders an OpenPose-style colored skeleton through a pinhole camera into an mp4 you hand to a pose-conditioned video model. The model does the skinning, lighting, and wardrobe. You keep the motion.
+## Two ways in
 
-The only dependency is `ffmpeg` on PATH. Nothing else.
+**1. From real footage (the main lane).** Point it at any clip with a person in it. It pulls **depth from the scene** and **pose from the actual person in frame** — both extracted from the same video — and composites them into one combo control. Feed that to a union/multi-condition model and it re-skins that exact person into anyone while their real motion, real 3D volume, and real occlusion stay intact. No mocap suit, no green screen, no set. Everything runs locally.
+
+```bash
+pip install -r python/requirements.txt   # torch, transformers, mediapipe, opencv
+python3 python/extract_controls.py --video in.mp4 --outdir controls/
+# → controls/depth.mp4, controls/pose.mp4, controls/combo.mp4
+```
+
+Hand `combo.mp4` to LTX-2.3 IC-LoRA Union-Control (the one we tested) with a prompt describing the character and world. Details and tuning in [From your own videos](#from-your-own-videos) below.
+
+> Tracking quality is shot quality: one clear, full-body subject tracks cleanly frame for frame. Distant, tiny, or crowded subjects are harder — the bundled MediaPipe model locks one person at a time.
+
+**2. From joint data (synthetic lane).** If you already have motion as joints — a physics sim, retargeted mocap, a procedural gait — a single static Go binary renders it to the same control format with no ML stack, `ffmpeg` the only dependency. Covered under [Quickstart](#quickstart).
 
 ## Pose and depth in one control video
 
@@ -109,18 +121,20 @@ Each spec is `path:dx,dz,ry` (XZ offset in meters, Y rotation in radians). Chara
 
 ## From your own videos
 
-The kit also works in reverse: `python/extract_controls.py` pulls control videos out of real footage instead of mocap data. Point it at any clip with a person in it and it produces three outputs:
+`python/extract_controls.py` pulls control videos straight out of real footage — depth from the scene, pose from the person in it. Point it at any clip with a person in frame and it produces three outputs:
 
 ```bash
 pip install -r python/requirements.txt   # torch, transformers, mediapipe, opencv
-python3 python/extract_controls.py --video in.mp4 --outdir controls/
+python3 python/extract_controls.py --video in.mp4 --outdir controls/ --scale 1.0
 ```
 
 - **`depth.mp4`** — monocular depth via Depth-Anything-V2-Small, grayscale, near = bright. Works on any footage, people or not.
-- **`pose.mp4`** — MediaPipe pose landmarks drawn as an OpenPose-style colored skeleton on black, same palette family as the renderer. Needs real humans in frame (it won't fire on stick figures or animation).
-- **`combo.mp4`** — the colored skeleton overlaid on the depth video: one control video, two channels, the extracted twin of a `-depth-combo` render. Drives union/multi-condition control models directly.
+- **`pose.mp4`** — MediaPipe pose landmarks of the real person, drawn as an OpenPose-style colored skeleton on black, same palette family as the renderer. Needs real humans in frame (it won't fire on stick figures or animation).
+- **`combo.mp4`** — the colored skeleton composited on the depth mask: one control video, two channels, the extracted twin of a `-depth-combo` render. This is the file you hand to a union/multi-condition model to re-skin the subject while keeping their motion and 3D.
 
-Everything runs locally (models download from public hubs on first run); `--scale` and `--max-frames` keep inference cheap on long clips. This lane is optional and Python-only — the Go binary never needs any of it.
+Everything runs locally (models download from public hubs on first run). `--scale` shrinks frames before inference and `--max-frames` caps long clips, both to keep it cheap. `--skip-depth` / `--skip-pose` emit a single channel.
+
+**Getting clean pose.** Tracking is only as good as the shot. A single clear, full-body subject that fills a good part of the frame tracks frame for frame. Subjects that are small, far, heavily occluded, or many-at-once are where the bundled `pose_landmarker_lite` (one person at a time) struggles — for crowd or wide shots, swap in a multi-person model (MediaPipe's heavier variant, or an external pose estimator) that writes the same skeleton format.
 
 ## Python reference implementation
 
